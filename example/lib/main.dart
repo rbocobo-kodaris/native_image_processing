@@ -17,6 +17,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String _platformVersion = 'Unknown';
+  String _batteryLevel = 'Unknown';
 
   @override
   void initState() {
@@ -53,8 +54,20 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Center(
+              child: Text('Running on: $_platformVersion\n'),
+            ),
+            Text('Battery Level: $_batteryLevel'),
+            TextButton(onPressed: () async {
+              final batteryLevel = await NativeImageProcessing.platBatteryLevel;
+              setState(() {
+                _batteryLevel = batteryLevel!;
+              });
+            }, child: Text('Get Battery Level'))
+          ],
         ),
       ),
     );

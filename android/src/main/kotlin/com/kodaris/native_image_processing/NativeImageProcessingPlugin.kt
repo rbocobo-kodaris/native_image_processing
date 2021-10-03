@@ -1,8 +1,12 @@
 package com.kodaris.native_image_processing
 
+import android.annotation.TargetApi
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.media.ExifInterface
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import androidx.annotation.NonNull
@@ -12,6 +16,8 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import java.io.InputStream
+
 
 /** NativeImageProcessingPlugin */
 class NativeImageProcessingPlugin: FlutterPlugin, MethodCallHandler {
@@ -37,6 +43,16 @@ class NativeImageProcessingPlugin: FlutterPlugin, MethodCallHandler {
         val batterPercentage = getBatteryPercentage(context)
         result.success("${batterPercentage}%");
       }
+      "getExifData" -> {
+        val filePath: String? = call.argument<String>("filePath")
+        if(filePath != null) {
+          val exifData = getExifDataFromPath(filePath)
+          result.success(exifData);
+        } else {
+          result.error("404", "File not found", null)
+        }
+
+      }
       else -> result.notImplemented()
     }
   }
@@ -58,5 +74,31 @@ class NativeImageProcessingPlugin: FlutterPlugin, MethodCallHandler {
       val batteryPct = level!! / scale?.toDouble()!!
       (batteryPct * 100).toInt()
     }
+  }
+
+  @TargetApi(Build.VERSION_CODES.N)
+  fun getExifData(uri: Uri): ExifInterface? {
+    val inputStream: InputStream?
+    try {
+      inputStream = context.contentResolver.openInputStream(uri)
+      return inputStream?.let { ExifInterface(it) }
+    } catch (ex: Exception) {
+      return null
+    }
+  }
+
+  fun getExifDataFromPath(filePath: String): HashMap<String, String>? {
+    val exif = ExifInterface(filePath)
+    val tagsToCheck = arrayOf(
+      ExifInterface.TAG_DATETIME,
+      ExifInterface.TAG_GPS_LATITUDE,
+      ExifInterface.TAG_GPS_LONGITUDE,
+      ExifInterface.TAG_EXPOSURE_TIME,
+      ExifInterface.TAG_ORIENTATION
+    )
+    val hashMap = HashMap<String, String>()
+    for (tag in tagsToCheck)
+      exif.getAttribute(tag)?.let { hashMap[tag] = it }
+    return hashMap;
   }
 }

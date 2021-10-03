@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:native_image_processing/native_image_processing.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(const MyApp());
@@ -66,7 +69,18 @@ class _MyAppState extends State<MyApp> {
               setState(() {
                 _batteryLevel = batteryLevel!;
               });
-            }, child: Text('Get Battery Level'))
+            }, child: Text('Get Battery Level')),
+            TextButton(
+              onPressed: () async {
+                if(await Permission.manageExternalStorage.request().isGranted){
+                  final filePath = File('/storage/emulated/0/DCIM/Camera/20210908_202844.jpg').path;
+                  final exifData = await NativeImageProcessing.getExifData(filePath);
+                  print(filePath);
+                  print(exifData);
+                }
+              },
+              child: Text('Get Exif Data'),
+            )
           ],
         ),
       ),

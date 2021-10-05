@@ -20,5 +20,10 @@ class NativeImageProcessing {
     final exifData = await _channel.invokeMethod("getExifData", { "filePath": filePath });
     return exifData;
   }
+
+  static Future<dynamic> bakeOrientation(String filePath) async {
+    final byteData = await _channel.invokeMethod("bakeOrientation", { "filePath": filePath });
+    return byteData;
+  }
 }
 

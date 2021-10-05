@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
 import android.os.BatteryManager
@@ -16,6 +18,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
 
@@ -51,7 +54,15 @@ class NativeImageProcessingPlugin: FlutterPlugin, MethodCallHandler {
         } else {
           result.error("404", "File not found", null)
         }
-
+      }
+      "bakeOrientation" -> {
+        val filePath: String? = call.argument<String>("filePath")
+        if(filePath != null){
+          val bmp = bakeOrientation(filePath)
+          result.success(getByteArray(bmp))
+        }else {
+          result.error("404", "File not found", null)
+        }
       }
       else -> result.notImplemented()
     }
@@ -100,5 +111,62 @@ class NativeImageProcessingPlugin: FlutterPlugin, MethodCallHandler {
     for (tag in tagsToCheck)
       exif.getAttribute(tag)?.let { hashMap[tag] = it }
     return hashMap;
+  }
+
+  fun bakeOrientation(filePath: String): Bitmap {
+    //Get exif to check orientation data
+    val exif = ExifInterface(filePath)
+    var orientationData = exif.getAttribute(ExifInterface.TAG_ORIENTATION)
+    val bitmap: Bitmap = BitmapFactory.decodeFile(filePath)
+    when(orientationData){
+      "2" -> {
+        return flipHorizontal(bitmap)!!
+      }
+      "3" -> {
+        return flipHorizontal(bitmap)?.let { flipVertical(it) }!!
+      }
+      "4" -> {
+        return rotate(bitmap, 180f)?.let { flipHorizontal(it) }!!
+      }
+      "5" -> {
+        return rotate(bitmap, 90f)?.let { flipHorizontal(it) }!!
+      }
+      "6" -> {
+        return rotate(bitmap, 90f)!!
+      }
+      "7" -> {
+        return rotate(bitmap, -90f)?.let { flipHorizontal(it) }!!
+      }
+      "8" -> {
+        return rotate(bitmap, -90f)!!
+      }
+    }
+
+    return bitmap
+  }
+
+  fun flipHorizontal(bitmap: Bitmap): Bitmap? {
+    val matrix: Matrix = Matrix()
+    matrix.setScale(-1.0f, 1.0f)
+    matrix.postTranslate(bitmap.width.toFloat(), 0f)
+    return Bitmap.createBitmap(bitmap,0,0,bitmap.width, bitmap.height, matrix, true)
+  }
+  fun flipVertical(bitmap: Bitmap): Bitmap? {
+    val matrix: Matrix = Matrix()
+    matrix.setScale(1.0f, -1.0f)
+    matrix.postTranslate(0f, bitmap.height.toFloat())
+    return Bitmap.createBitmap(bitmap,0,0,bitmap.width, bitmap.height, matrix, true)
+  }
+
+  fun rotate(bitmap: Bitmap, angle: Float): Bitmap? {
+    val matrix: Matrix = Matrix()
+    matrix.postRotate(angle)
+    return Bitmap.createBitmap(bitmap,0,0,bitmap.width, bitmap.height, matrix, true)
+  }
+
+  fun getByteArray(bmp: Bitmap): ByteArray {
+    val stream = ByteArrayOutputStream()
+    bmp.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+    return stream.toByteArray()
   }
 }

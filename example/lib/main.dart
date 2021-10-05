@@ -80,6 +80,17 @@ class _MyAppState extends State<MyApp> {
                 }
               },
               child: Text('Get Exif Data'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if(await Permission.manageExternalStorage.request().isGranted){
+                  final filePath = File('/storage/emulated/0/DCIM/Camera/20210908_202844.jpg').path;
+                  final byteData = await NativeImageProcessing.bakeOrientation(filePath);
+                  print(filePath);
+                  print(byteData);
+                }
+              },
+              child: Text('Bake Orientation '),
             )
           ],
         ),
